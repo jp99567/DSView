@@ -559,7 +559,12 @@ QString DsoSignal::get_measure(enum DSO_MEASURE_TYPE type)
                 mString = QString::number(1000/_period, 'f', 2) + "MHz";
             break;
         case DSO_MS_VRMS:
-            mString = get_voltage(_rms, 2);
+        {
+            auto v = get_voltage_f(_rms, 2);
+            mString = abs(v) >= 1000 ? QString::number(v/1000.0, 'f', 2) + "V" : QString::number(v, 'f', 2) + "mV";
+            auto path = QString("daq/v/ch%1").arg(this->get_index());
+            mqtt->publish(path, QString::number(v/1000));
+        }
             break;
         case DSO_MS_VMEA:
             mString = get_voltage(_mean, 2);
@@ -1509,25 +1514,31 @@ double DsoSignal::get_voltage(uint64_t index)
 
 QString DsoSignal::get_voltage(double v, int p, bool scaled)
 {
-    if (_vDial == NULL){
-        assert(false);
-    }
-
-    if (get_view_rect().height() == 0){
-        assert(false);
-    }
-
-    assert(_data);
-
-    uint64_t k = _data->get_measure_voltage_factor(this->get_index());
-    float data_scale = _data->get_data_scale(this->get_index());
-
-    if (scaled)
-        v = v * k * _vDial->get_factor() * DS_CONF_DSO_VDIVS / get_view_rect().height();
-    else
-        v = v * data_scale * k * _vDial->get_factor() * DS_CONF_DSO_VDIVS / get_view_rect().height();
-    
+    v = get_voltage_f(v, p, scaled);
     return abs(v) >= 1000 ? QString::number(v/1000.0, 'f', p) + "V" : QString::number(v, 'f', p) + "mV";
+}
+
+double DsoSignal::get_voltage_f(double v, int p, bool scaled)
+{
+  if (_vDial == NULL){
+    assert(false);
+  }
+
+  if (get_view_rect().height() == 0){
+    assert(false);
+  }
+
+  assert(_data);
+
+  uint64_t k = _data->get_measure_voltage_factor(this->get_index());
+  float data_scale = _data->get_data_scale(this->get_index());
+
+  if (scaled)
+    v = v * k * _vDial->get_factor() * DS_CONF_DSO_VDIVS / get_view_rect().height();
+  else
+    v = v * data_scale * k * _vDial->get_factor() * DS_CONF_DSO_VDIVS / get_view_rect().height();
+
+  return v;
 }
 
 QString DsoSignal::get_time(double t)

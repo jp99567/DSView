@@ -19,7 +19,7 @@
 ## along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ##
 
-cmake_minimum_required(VERSION 2.8.6)
+cmake_minimum_required(VERSION 3.19)
 
 project(DSView)
 
@@ -61,7 +61,6 @@ endif()
 
 set(DISABLE_WERROR TRUE) #Build without -Werror
 set(ENABLE_SIGNALS TRUE) #Build with UNIX signals
-set(ENABLE_COTIRE FALSE) #Enable cotire
 set(STATIC_PKGDEPS_LIBS FALSE) #Statically link to (pkg-config) libraries
 
 if(WIN32)
@@ -71,12 +70,6 @@ if(WIN32)
 
 	# Windows does not support UNIX signals.
 	set(ENABLE_SIGNALS FALSE)
-endif()
-
-if(NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING
-      "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel."
-      FORCE)
 endif()
 
 #===============================================================================
@@ -176,34 +169,21 @@ include_directories(${ZLIB_INCLUDE_DIRS})
 #= Qt5 or Qt6
 #-------------------------------------------------------------------------------
 
-find_package(Qt5Core QUIET)
+find_package(QT NAMES Qt6 COMPONENTS Widgets REQUIRED)
+find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Widgets REQUIRED)
+find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Mqtt REQUIRED)
 
-if(Qt5Core_FOUND)
-	message("----- Qt5:")
-	message(STATUS "	 includes:" ${Qt5Core_INCLUDE_DIRS})
-	#find_package(Qt5WinExtras REQUIRED)
-	find_package(Qt5Widgets REQUIRED)
-	find_package(Qt5Gui REQUIRED)
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${Qt5Widgets_EXECUTABLE_COMPILE_FLAGS}")
-	#set(QT_INCLUDE_DIRS ${Qt5Gui_INCLUDE_DIRS} ${Qt5Widgets_INCLUDE_DIRS} ${Qt5WinExtras_INCLUDE_DIRS})
-	#set(QT_LIBRARIES Qt5::Gui Qt5::Widgets Qt5::WinExtras)
-	set(QT_INCLUDE_DIRS ${Qt5Gui_INCLUDE_DIRS} ${Qt5Widgets_INCLUDE_DIRS})
-	set(QT_LIBRARIES Qt5::Gui Qt5::Widgets)
-	add_definitions(${Qt5Gui_DEFINITIONS} ${Qt5Widgets_DEFINITIONS})
-else()
-	find_package(Qt6Core QUIET)
-endif()
 
-if(Qt6Core_FOUND)
-    	message("----- Qt6:")
-	message(STATUS "	 includes:" ${Qt6Core_INCLUDE_DIRS})
-	find_package(Qt6Widgets REQUIRED)
-	find_package(Qt6Gui REQUIRED)
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${Qt6Widgets_EXECUTABLE_COMPILE_FLAGS}")
-	set(QT_INCLUDE_DIRS ${Qt6Gui_INCLUDE_DIRS} ${Qt6Widgets_INCLUDE_DIRS})
-	set(QT_LIBRARIES Qt6::Gui Qt6::Widgets)
-	add_definitions(${Qt6Gui_DEFINITIONS} ${Qt6Widgets_DEFINITIONS})
-endif()
+message("----- Qt6:")
+message(STATUS "	 includes:" ${Qt6Core_INCLUDE_DIRS})
+find_package(Qt6 COMPONENTS Widgets REQUIRED)
+find_package(Qt6 COMPONENTS Gui REQUIRED)
+find_package(Qt6 COMPONENTS Mqtt REQUIRED)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${Qt6Widgets_EXECUTABLE_COMPILE_FLAGS}")
+set(QT_INCLUDE_DIRS ${Qt6Gui_INCLUDE_DIRS} ${Qt6Widgets_INCLUDE_DIRS})
+set(QT_LIBRARIES Qt6::Gui Qt6::Widgets Qt6::Mqtt)
+add_definitions(${Qt6Gui_DEFINITIONS} ${Qt6Widgets_DEFINITIONS})
+
 
 if(NOT Qt5Core_FOUND AND NOT Qt6Core_FOUND)
 	message("Error!The qt5 or qt6 can't find, if them has been installed, please append the install path to CMAKE_PREFIX_PATH, the command as:")
@@ -335,6 +315,7 @@ set(DSView_SOURCES
 	DSView/src/data/logicsnapshot.cpp
 	DSView/src/data/decoderstack.cpp
 	DSView/src/data/spectrumstack.cpp
+        DSView/src/appcore/MqttPublish.cpp
 )
 
 set(DSView_HEADERS
@@ -408,6 +389,7 @@ set(DSView_HEADERS
 	DSView/src/data/decoderstack.h
 	DSView/src/data/spectrumstack.h
 	DSView/src/data/mathstack.h
+        DSView/src/appcore/MqttPublish.h
 )
  
 #===============================================================================
@@ -515,9 +497,7 @@ if(NOT DISABLE_WERROR)
         add_definitions(-Werror)
 endif()
 
-set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99")
-
 
 include_directories(
 	${CMAKE_CURRENT_BINARY_DIR}
@@ -532,20 +512,6 @@ if(STATIC_PKGDEPS_LIBS)
 else()
 	include_directories(${PKGDEPS_INCLUDE_DIRS})
 endif()
-
-#===============================================================================
-#= Release flags
-#-------------------------------------------------------------------------------
-set(CMAKE_CXX_FLAGS "-Wall -Wextra")
-set(CMAKE_BUILD_TYPE Release)
-set(CMAKE_CXX_FLAGS_DEBUG "-g")
-set(CMAKE_CXX_FLAGS_RELEASE "-O3")
-add_compile_options(-O3)
-
-#===============================================================================
-#= Linker Configuration
-#-------------------------------------------------------------------------------
-
 
 set(DSVIEW_LINK_LIBS
 	-lz
@@ -586,14 +552,7 @@ if(WIN32)
 set_target_properties(${PROJECT_NAME} PROPERTIES LINK_FLAGS "-mwindows")
 endif()
 
-if(ENABLE_COTIRE)
-	include(cotire)
-	cotire(${PROJECT_NAME})
-endif()
-
-message(STATUS "Output dir: ${CMAKE_CURRENT_SOURCE_DIR}/build.dir")
-set(EXECUTABLE_OUTPUT_PATH "${CMAKE_CURRENT_SOURCE_DIR}/build.dir")
-
+set(EXECUTABLE_OUTPUT_PATH "${CMAKE_CURRENT_BINARY_DIR}/build.dir")
 #===============================================================================
 #= Installation
 #-------------------------------------------------------------------------------
@@ -642,5 +601,3 @@ set(CPACK_SOURCE_PACKAGE_FILE_NAME
 set(CPACK_SOURCE_GENERATOR "TGZ")
 
 include(CPack)
-
-

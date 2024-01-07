@@ -912,6 +912,9 @@ namespace appcore {
         clear_signals();
         std::vector<view::Signal *>().swap(_signals);
         _signals = sigs;
+        for(auto& signal : _signals)
+          signal->mqtt = _mqtt;
+
         make_channels_view_index();
 
         spectrum_rebuild();

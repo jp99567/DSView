@@ -191,6 +191,7 @@ public:
     void set_zero_ratio(double ratio);
     double get_voltage(uint64_t index);
     QString get_voltage(double v, int p, bool scaled = false);
+    double get_voltage_f(double v, int p, bool scaled = false);
     QString get_time(double t);
 
     /**

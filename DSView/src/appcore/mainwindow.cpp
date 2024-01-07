@@ -130,6 +130,18 @@ namespace appcore {
         _last_key_press_time = high_resolution_clock::now();
 
         update_title_bar_text();
+        auto mqtt = std::make_shared<MqttPublish>(this);
+
+        {
+          connect(mqtt.get(), &QMqttClient::connected, [this]{
+            qDebug() << "mqtt connected";
+          });
+
+          mqtt->setHostname(MqttPublish::hostName);
+          mqtt->setPort(1883);
+          mqtt->connectToHost();
+        }
+        _session->_mqtt = mqtt;
     }
 
     void MainWindow::setup_ui()

@@ -41,6 +41,7 @@
 #include "../data/logicsnapshot.h"
 #include "../data/analogsnapshot.h"
 #include "../data/dsosnapshot.h"
+#include "MqttPublish.h"
  
 struct srd_decoder;
 struct srd_channel;
@@ -436,6 +437,8 @@ public:
     inline void set_decoder_pannel(IDecoderPannel *pannel){
         _decoder_pannel = pannel;
     }
+
+    std::shared_ptr<MqttPublish> _mqtt;
 
 private:
     void set_cur_samplelimits(uint64_t samplelimits);

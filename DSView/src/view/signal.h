@@ -31,7 +31,8 @@
 #include <QString>
 #include <stdint.h>
 #include <list>
-#include <libsigrok.h> 
+#include <libsigrok.h>
+#include "src/appcore/MqttPublish.h"
 #include "trace.h"
 
 namespace dsv{
@@ -75,6 +76,7 @@ public:
      */
     void set_name(QString name);
 
+    std::shared_ptr<MqttPublish> mqtt;
 
 protected: 
     sr_channel *const _probe;
